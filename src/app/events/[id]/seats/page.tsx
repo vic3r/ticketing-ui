@@ -58,6 +58,13 @@ export default function SeatsPage() {
   }, [user, token, selected, id, router]);
 
   if (loading || !event) {
+    if (error && !event) {
+      return (
+        <div className="mx-auto max-w-4xl px-4 py-16 text-center">
+          <p className="text-red-600">{error}</p>
+        </div>
+      );
+    }
     return (
       <div className="mx-auto max-w-4xl px-4 py-16 text-center">
         <p className="text-ink-600">Loading...</p>
