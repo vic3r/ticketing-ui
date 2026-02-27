@@ -13,7 +13,8 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "check": "npm run lint && npm run test",
-    "check:e2e": "npx playwright install && npm run test:e2e"
+    "check:e2e": "npx playwright install && npm run test:e2e",
+    "prepare": "husky"
   },
   "dependencies": {
     "next": "15.1.0",
@@ -36,6 +37,13 @@
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5",
-    "vitest": "^4.0.18"
+    "vitest": "^4.0.18",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.3"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,json}": [
+      "eslint --fix"
+    ]
   }
 }
