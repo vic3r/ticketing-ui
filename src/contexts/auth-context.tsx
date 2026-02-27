@@ -9,6 +9,7 @@ import React, {
   useState,
 } from 'react';
 import type { User } from '@/types/api';
+import { logger } from '@/lib/logger';
 
 interface AuthState {
   user: User | null;
@@ -43,10 +44,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           token?: string;
           user?: User;
         };
-        if (token && user) setState({ user, token, ready: true });
+        if (token && user) {
+          setState({ user, token, ready: true });
+          logger.debug("Auth restored from storage", { userId: user.id });
+        }
       }
-    } catch {
-      // ignore
+    } catch (e) {
+      logger.warn("Auth storage read failed", { message: e instanceof Error ? e.message : "parse error" });
     }
     if (!state.ready) setState((s) => ({ ...s, ready: true }));
   }, []);
@@ -61,6 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(
     async (email: string, password: string) => {
+      logger.info("Login attempt", { email });
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'}/auth/login`,
         {
@@ -71,17 +76,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error((err as { message?: string }).message ?? 'Login failed');
+        const msg = (err as { message?: string }).message ?? 'Login failed';
+        logger.warn("Login failed", { email, status: res.status, message: msg });
+        throw new Error(msg);
       }
       const { token, user } = (await res.json()) as { token: string; user: User };
       persist(token, user);
       setState({ user, token, ready: true });
+      logger.info("Login success", { userId: user.id, email: user.email });
     },
     [persist]
   );
 
   const register = useCallback(
     async (email: string, password: string, name: string) => {
+      logger.info("Register attempt", { email });
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'}/auth/register`,
         {
@@ -92,18 +101,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(
-          (err as { message?: string }).message ?? 'Registration failed'
-        );
+        const msg = (err as { message?: string }).message ?? 'Registration failed';
+        logger.warn("Register failed", { email, status: res.status, message: msg });
+        throw new Error(msg);
       }
       const { token, user } = (await res.json()) as { token: string; user: User };
       persist(token, user);
       setState({ user, token, ready: true });
+      logger.info("Register success", { userId: user.id, email: user.email });
     },
     [persist]
   );
 
   const logout = useCallback(() => {
+    logger.debug("Logout");
     persist(null, null);
     setState({ user: null, token: null, ready: true });
   }, [persist]);

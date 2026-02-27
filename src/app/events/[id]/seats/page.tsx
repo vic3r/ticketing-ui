@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
+import { logger } from "@/lib/logger";
 import type { Event, EventSeat } from "@/types/api";
 
 export default function SeatsPage() {
@@ -21,12 +22,18 @@ export default function SeatsPage() {
 
   useEffect(() => {
     if (!id) return;
+    logger.debug("Seats load", { eventId: id });
     Promise.all([api.events.get(id), api.events.seats(id)])
       .then(([ev, s]) => {
         setEvent(ev);
         setSeats(s);
+        logger.info("Seats loaded", { eventId: id, seatCount: s.length });
       })
-      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"))
+      .catch((e) => {
+        const msg = e instanceof Error ? e.message : "Failed to load";
+        setError(msg);
+        logger.warn("Seats load failed", { eventId: id, message: msg });
+      })
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -44,14 +51,19 @@ export default function SeatsPage() {
     if (!user || !token || selected.size === 0 || !id) return;
     setReserving(true);
     setError(null);
+    const seatIds = Array.from(selected);
+    logger.info("Reservation started", { eventId: id, seatCount: seatIds.length });
     try {
       await api.reservations.create(
-        { eventId: id, seatIds: Array.from(selected) },
+        { eventId: id, seatIds },
         token
       );
-      router.push(`/events/${id}/checkout?seatIds=${Array.from(selected).join(",")}`);
+      logger.info("Reservation success", { eventId: id, seatIds });
+      router.push(`/events/${id}/checkout?seatIds=${seatIds.join(",")}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Reservation failed");
+      const msg = e instanceof Error ? e.message : "Reservation failed";
+      setError(msg);
+      logger.warn("Reservation failed", { eventId: id, message: msg });
     } finally {
       setReserving(false);
     }

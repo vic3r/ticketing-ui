@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
+import { logger } from "@/lib/logger";
+import { validate } from "@/lib/validate";
 
 const initialForm = { email: "", password: "" };
 
@@ -21,12 +23,22 @@ export default function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    const email = validate.email(form.email);
+    const password = validate.password(form.password);
+    if (!email || !password) {
+      setError("Please enter a valid email and password.");
+      return;
+    }
     setLoading(true);
+    logger.debug("Login form submit", { email });
     try {
-      await login(form.email, form.password);
+      await login(email, password);
+      logger.info("Login redirect to /events");
       router.push("/events");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Login failed");
+      const msg = e instanceof Error ? e.message : "Login failed";
+      setError(msg);
+      logger.warn("Login error", { message: msg });
     } finally {
       setLoading(false);
     }

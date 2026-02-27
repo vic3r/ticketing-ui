@@ -4,6 +4,7 @@ import type {
   EventSeat,
   CheckoutResponse,
 } from "@/types/api";
+import { logger } from "@/lib/logger";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
@@ -21,12 +22,22 @@ async function fetchApi<T>(
   if (token) {
     (headers as Record<string, string>).Authorization = `Bearer ${token}`;
   }
-  const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error((err as { message?: string }).message ?? "Request failed");
+  const url = `${API_BASE}${path}`;
+  logger.debug("API request", { path, method: init.method ?? "GET" });
+  try {
+    const res = await fetch(url, { ...init, headers });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: res.statusText }));
+      const msg = (err as { message?: string }).message ?? "Request failed";
+      logger.warn("API request failed", { path, status: res.status, message: msg });
+      throw new Error(msg);
+    }
+    return res.json() as Promise<T>;
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Request failed";
+    logger.error("API request error", { path, message });
+    throw e;
   }
-  return res.json() as Promise<T>;
 }
 
 export const api = {

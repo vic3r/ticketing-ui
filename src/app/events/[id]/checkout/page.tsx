@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
+import { logger } from "@/lib/logger";
 
 export default function CheckoutPage() {
   const params = useParams();
@@ -22,8 +23,10 @@ export default function CheckoutPage() {
     if (!user || seatIds.length === 0 || !id) {
       setStatus("error");
       setError("Missing user, seats, or event.");
+      logger.warn("Checkout skipped", { hasUser: !!user, seatCount: seatIds.length, eventId: id });
       return;
     }
+    logger.info("Checkout started", { eventId: id, seatCount: seatIds.length, userId: user.id });
     api.orders
       .checkout({
         userId: user.id,
@@ -37,10 +40,14 @@ export default function CheckoutPage() {
         setClientSecret(res.clientSecret);
         setStatus(res.clientSecret ? "success" : "error");
         if (!res.clientSecret) setError("No payment intent returned.");
+        if (res.clientSecret) logger.info("Checkout success", { orderId: res.orderId });
+        else logger.warn("Checkout no clientSecret", { orderId: res.orderId });
       })
       .catch((e) => {
         setStatus("error");
-        setError(e instanceof Error ? e.message : "Checkout failed");
+        const msg = e instanceof Error ? e.message : "Checkout failed";
+        setError(msg);
+        logger.error("Checkout failed", { eventId: id, message: msg });
       });
   }, [user, seatIds, id]);
 

@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
+import { logger } from "@/lib/logger";
+import { validate } from "@/lib/validate";
 
 const initialForm = { name: "", email: "", password: "" };
 
@@ -21,12 +23,23 @@ export default function RegisterPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    const name = validate.name(form.name);
+    const email = validate.email(form.email);
+    const password = validate.password(form.password);
+    if (!name || !email || !password) {
+      setError("Please enter a valid name, email, and password.");
+      return;
+    }
     setLoading(true);
+    logger.debug("Register form submit", { email });
     try {
-      await register(form.email, form.password, form.name);
+      await register(email, password, name);
+      logger.info("Register redirect to /events");
       router.push("/events");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Registration failed");
+      const msg = e instanceof Error ? e.message : "Registration failed";
+      setError(msg);
+      logger.warn("Register error", { message: msg });
     } finally {
       setLoading(false);
     }
