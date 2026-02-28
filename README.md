@@ -31,6 +31,8 @@ Open [http://localhost:3002](http://localhost:3002). Ensure the ticketing API is
 
 Configure `NEXT_PUBLIC_API_URL` to point at the ticketing API. Default: `http://localhost:3001`.
 
+**If login/register shows "status 0" or network errors:** The UI (port 3002) calls the API (port 3001), which is a cross-origin request. (1) Ensure the ticketing API is running (`cd ticketing-api && npm run dev`). (2) The API allows `http://localhost:3002` in development; if you set `FRONTEND_URL` in the API `.env`, include `http://localhost:3002` or leave it unset for local dev.
+
 ## Testing
 
 - **Prechecks (lint + unit tests, like the backend)**  
