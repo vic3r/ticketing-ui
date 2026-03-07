@@ -24,7 +24,7 @@ export default function NewEventPage() {
     startTime: "18:00",
     endDate: "",
     endTime: "22:00",
-    isPublished: false,
+    isPublished: true,
   });
 
   useEffect(() => {
