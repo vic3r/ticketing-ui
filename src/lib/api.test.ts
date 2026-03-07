@@ -177,4 +177,126 @@ describe("api", () => {
     });
     await expect(api.events.list()).rejects.toThrow("Server Error");
   });
+
+  it("events.create sends POST with token and returns event", async () => {
+    const event = {
+      id: "ev1",
+      name: "New Event",
+      venueId: "v1",
+      organizerId: null,
+      startDate: "2025-08-01T18:00:00.000Z",
+      endDate: "2025-08-01T22:00:00.000Z",
+      description: null,
+      imageUrl: null,
+      status: "draft",
+      isPublished: false,
+      createdAt: "",
+      updatedAt: "",
+    };
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(event),
+    });
+    const result = await api.events.create(
+      {
+        venueId: "v1",
+        organizerId: null,
+        name: "New Event",
+        description: null,
+        imageUrl: null,
+        startDate: "2025-08-01T18:00:00.000Z",
+        endDate: "2025-08-01T22:00:00.000Z",
+        isPublished: false,
+      },
+      "admin-token"
+    );
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/events"),
+      expect.objectContaining({
+        method: "POST",
+        body: expect.any(String),
+        headers: expect.objectContaining({
+          Authorization: "Bearer admin-token",
+        }),
+      })
+    );
+    expect(result.id).toBe("ev1");
+    expect(result.name).toBe("New Event");
+  });
+
+  it("venues.list returns array from GET /venues", async () => {
+    const venues = [
+      { id: "v1", name: "Arena", address: "1 St", city: "City", state: "ST", zip: "123", country: "US", organizerId: null, description: null, createdAt: "", updatedAt: "" },
+    ];
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(venues),
+    });
+    const result = await api.venues.list();
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/venues"),
+      expect.any(Object)
+    );
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe("Arena");
+  });
+
+  it("venues.get(id) calls GET /venues/:id", async () => {
+    const venue = { id: "v1", name: "Hall", address: "2 St", city: "Town", state: "ST", zip: "456", country: "US", organizerId: null, description: null, createdAt: "", updatedAt: "" };
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(venue),
+    });
+    const result = await api.venues.get("v1");
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringMatching(/\/venues\/v1$/),
+      expect.any(Object)
+    );
+    expect(result.name).toBe("Hall");
+  });
+
+  it("venues.create sends POST with token and returns venue", async () => {
+    const venue = { id: "v1", name: "New Venue", address: "3 St", city: "City", state: "ST", zip: "789", country: "US", organizerId: null, description: null, createdAt: "", updatedAt: "" };
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(venue),
+    });
+    const result = await api.venues.create(
+      { name: "New Venue", address: "3 St", city: "City", state: "ST", zip: "789", country: "US" },
+      "admin-token"
+    );
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/venues"),
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          Authorization: "Bearer admin-token",
+        }),
+      })
+    );
+    expect(result.id).toBe("v1");
+  });
+
+  it("venues.addSeats sends POST with token and returns count", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ count: 50 }),
+    });
+    const result = await api.venues.addSeats(
+      "v1",
+      { seats: [{ section: "A", row: "1", seatNumber: 1 }] },
+      "admin-token"
+    );
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringMatching(/\/venues\/v1\/seats/),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ seats: [{ section: "A", row: "1", seatNumber: 1 }] }),
+        headers: expect.objectContaining({
+          Authorization: "Bearer admin-token",
+        }),
+      })
+    );
+    expect(result.count).toBe(50);
+  });
 });

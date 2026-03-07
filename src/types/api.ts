@@ -1,3 +1,17 @@
+export interface Venue {
+  id: string;
+  organizerId: string | null;
+  name: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Event {
   id: string;
   organizerId: string;
@@ -11,6 +25,17 @@ export interface Event {
   isPublished: boolean | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface EventCreateRequest {
+  venueId: string;
+  organizerId: string | null;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+  startDate: string;
+  endDate: string;
+  isPublished?: boolean;
 }
 
 export interface EventSeat {

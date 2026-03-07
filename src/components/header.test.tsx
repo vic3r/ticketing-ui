@@ -45,4 +45,25 @@ describe("Header", () => {
     await userEvent.click(screen.getByRole("button", { name: /log out/i }));
     expect(logout).toHaveBeenCalledTimes(1);
   });
+
+  it("shows Admin link when user role is admin", () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: "a1", email: "admin@example.com", name: "Admin", role: "admin" },
+      ready: true,
+      logout: vi.fn(),
+    });
+    render(<Header />);
+    expect(screen.getByRole("link", { name: /admin/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /admin/i })).toHaveAttribute("href", "/admin");
+  });
+
+  it("does not show Admin link when user role is user", () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: "1", email: "a@b.com", name: "Alice", role: "user" },
+      ready: true,
+      logout: vi.fn(),
+    });
+    render(<Header />);
+    expect(screen.queryByRole("link", { name: /admin/i })).not.toBeInTheDocument();
+  });
 });

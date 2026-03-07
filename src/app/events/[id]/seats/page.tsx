@@ -95,17 +95,39 @@ export default function SeatsPage() {
     );
   }
 
-  const availableSeats = seats.filter((s) => s.status === "available");
-  const groupedBySection = availableSeats.reduce<Record<string, EventSeat[]>>(
+  // Group all seats by section, then by row for a theater-style map
+  const bySection = seats.reduce<Record<string, EventSeat[]>>(
     (acc, s) => {
       (acc[s.section] = acc[s.section] ?? []).push(s);
       return acc;
     },
     {}
   );
+  const sectionOrder = Object.keys(bySection).sort();
+  // Within each section, group by row and sort by row then seat number
+  const getSectionRows = (secSeats: EventSeat[]) => {
+    const byRow = secSeats.reduce<Record<string, EventSeat[]>>(
+      (acc, s) => {
+        const row = s.row ?? "—";
+        (acc[row] = acc[row] ?? []).push(s);
+        return acc;
+      },
+      {}
+    );
+    Object.keys(byRow).forEach((row) => {
+      byRow[row].sort((a, b) => (a.seatNumber ?? 0) - (b.seatNumber ?? 0));
+    });
+    const rowKeys = Object.keys(byRow).sort((a, b) => {
+      const na = parseInt(a, 10);
+      const nb = parseInt(b, 10);
+      if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
+      return a.localeCompare(b);
+    });
+    return { byRow, rowKeys };
+  };
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
+    <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
       <Link
         href={`/events/${id}`}
         className="mb-8 inline-flex items-center text-sm text-ink-600 hover:text-ink-900"
@@ -118,30 +140,60 @@ export default function SeatsPage() {
       </h1>
       <p className="mt-2 text-ink-600">{event.name}</p>
 
-      <div className="mt-10 flex flex-col gap-8">
-        {Object.entries(groupedBySection).map(([section, secSeats]) => (
-          <div key={section}>
-            <h2 className="mb-4 font-medium text-ink-700">Section {section}</h2>
-            <div className="flex flex-wrap gap-2">
-              {secSeats.map((seat) => (
-                <button
-                  key={seat.id}
-                  onClick={() => toggleSeat(seat.id, seat.status)}
-                  disabled={seat.status !== "available"}
-                  className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-                    seat.status === "available"
-                      ? selected.has(seat.id)
-                        ? "bg-brand-600 text-white"
-                        : "bg-ink-200 text-ink-800 hover:bg-ink-300"
-                      : "cursor-not-allowed bg-ink-100 text-ink-400"
-                  }`}
-                >
-                  {seat.row ?? ""} {seat.seatNumber ?? seat.id.slice(0, 6)}
-                </button>
-              ))}
+      {/* Stage / front indicator */}
+      <div className="mt-10 flex justify-center">
+        <div className="rounded-lg bg-ink-200 px-6 py-2 text-center text-sm font-medium text-ink-600">
+          Stage / Front
+        </div>
+      </div>
+
+      <div className="mt-6 flex flex-col gap-10">
+        {sectionOrder.map((section) => {
+          const secSeats = bySection[section];
+          const { byRow, rowKeys } = getSectionRows(secSeats);
+          return (
+            <div
+              key={section}
+              className="rounded-xl border border-ink-200 bg-white p-6 shadow-sm"
+            >
+              <h2 className="mb-4 font-display text-lg font-normal text-ink-900">
+                Section {section}
+              </h2>
+              <div className="flex flex-col gap-3">
+                {rowKeys.map((row) => (
+                  <div
+                    key={row}
+                    className="flex flex-wrap items-center gap-1"
+                  >
+                    <span className="mr-3 w-8 text-right text-sm font-medium text-ink-500">
+                      Row {row}
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {(byRow[row] ?? []).map((seat) => (
+                        <button
+                          key={seat.id}
+                          type="button"
+                          onClick={() => toggleSeat(seat.id, seat.status)}
+                          disabled={seat.status !== "available"}
+                          title={`Section ${section} Row ${row} Seat ${seat.seatNumber ?? seat.id}`}
+                          className={`flex h-9 w-9 items-center justify-center rounded text-xs font-medium transition ${
+                            seat.status === "available"
+                              ? selected.has(seat.id)
+                                ? "bg-brand-600 text-white ring-2 ring-brand-400 ring-offset-2"
+                                : "bg-ink-200 text-ink-800 hover:bg-ink-300"
+                              : "cursor-not-allowed bg-ink-100 text-ink-400"
+                          }`}
+                        >
+                          {seat.seatNumber ?? "—"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {seats.some((s) => s.status === "reserved" || s.status === "sold") && (

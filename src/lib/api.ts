@@ -2,7 +2,9 @@ import type {
   AuthResponse,
   Event,
   EventSeat,
+  EventCreateRequest,
   CheckoutResponse,
+  Venue,
 } from "@/types/api";
 import { logger } from "@/lib/logger";
 
@@ -59,6 +61,44 @@ export const api = {
     get: (id: string) => fetchApi<Event>(`/events/${id}`),
     seats: (id: string) =>
       fetchApi<EventSeat[]>(`/events/${id}/seats`),
+    create: (body: EventCreateRequest, token: string) =>
+      fetchApi<Event>("/events", {
+        method: "POST",
+        body: JSON.stringify(body),
+        token,
+      }),
+  },
+  venues: {
+    list: () => fetchApi<Venue[]>("/venues"),
+    get: (id: string) => fetchApi<Venue>(`/venues/${id}`),
+    create: (
+      body: {
+        name: string;
+        address: string;
+        city: string;
+        state: string;
+        zip: string;
+        country: string;
+        description?: string | null;
+        organizerId?: string | null;
+      },
+      token: string
+    ) =>
+      fetchApi<Venue>("/venues", {
+        method: "POST",
+        body: JSON.stringify(body),
+        token,
+      }),
+    addSeats: (
+      venueId: string,
+      body: { seats: Array<{ section: string; row?: string; seatNumber?: number }> },
+      token: string
+    ) =>
+      fetchApi<{ count: number }>(`/venues/${venueId}/seats`, {
+        method: "POST",
+        body: JSON.stringify(body),
+        token,
+      }),
   },
   reservations: {
     create: (

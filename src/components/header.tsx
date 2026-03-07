@@ -26,6 +26,14 @@ export function Header() {
             <>
               {user ? (
                 <div className="flex items-center gap-4">
+                  {user.role === "admin" && (
+                    <Link
+                      href="/admin"
+                      className="text-sm font-medium text-ink-600 hover:text-ink-900"
+                    >
+                      Admin
+                    </Link>
+                  )}
                   <span className="text-sm text-ink-600">{user.name}</span>
                   <button
                     onClick={logout}
